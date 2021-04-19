@@ -1,7 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers
-import tensorflow as tf
- 
+
 class FeaturesEmbedding(layers.Layer):
     """
     Custom layer to create embeddings for the input data.
@@ -66,7 +65,6 @@ class ParserModel(keras.Model):
         """ Initialize the parser model.
 
         @param embeddings (ndarray): word embeddings (num_words, embedding_size)
-        @param n_features (int): number of input features.
         @param n_pos (int): number of POS tags.
         @param n_tags (int): number of DEPREL tags.
         @param tag_size (int): size of embeddings for POS and DEPREL tags.
@@ -79,7 +77,7 @@ class ParserModel(keras.Model):
         self.n_actions = n_actions
         self.hidden_size = hidden_size
 
-        ### YOUR CODE HERE (~4-5 Lines)
+        ### YOUR CODE HERE (~9-10 Lines)
         ### TODO:
         ###     1) Use the `FeaturesEmbedding` as first layer.
         ###     2) Construct `self.dropout` layer.
@@ -91,25 +89,13 @@ class ParserModel(keras.Model):
         ###     Model: https://www.tensorflow.org/guide/keras/custom_layers_and_models
         ###     Dropout: https://www.tensorflow.org/api_docs/python/tf/keras/layers/Dropout
         ###
-        self.femd = FeaturesEmbedding(embeddings, n_pos, tag_size, n_tags, tag_size)
-        self.dropout = layers.Dropout(dropout_prob)
-        w_b_init = tf.keras.initializers.GlorotUniform()
-        self.hidden_weight = tf.Variable(
-            initial_value=w_b_init(shape=((embeddings.shape[1]+2*tag_size)*self.n_features, self.hidden_size), dtype="float32"),
-            trainable=True,
-        )
 
-        self.hidden_bias = tf.Variable(
-            initial_value=w_b_init(shape=(self.hidden_size,), dtype="float32"), trainable=True
-        )
-        self.hidden_to_logits_weight = tf.Variable(
-            initial_value=w_b_init(shape=(self.hidden_size, self.n_actions), dtype="float32"),
-            trainable=True,
-        )
-        self.hidden_to_logits_bias = tf.Variable(
-            initial_value=w_b_init(shape=(self.n_actions,), dtype="float32"), trainable=True
-        )
         ### END YOUR CODE
+
+        self.features = FeaturesEmbedding(embeddings, n_pos, tag_size, n_tags, tag_size)
+        self.dense = layers.Dense(hidden_size, activation='relu')
+        self.dropout = layers.Dropout(dropout_prob)
+        self.logits = layers.Dense(n_actions, activation='softmax')
 
         
     def call(self, inputs, training=False):
@@ -139,11 +125,18 @@ class ParserModel(keras.Model):
         ### Please see the following docs for support:
         ###     Matrix product: https://www.tensorflow.org/api_docs/python/tf/linalg/matmul
         ###     ReLU: https://www.tensorflow.org/api_docs/python/tf/keras/activations/relu
-        femd = self.femd(inputs)
-        h = tf.matmul(femd, self.hidden_weight) + self.hidden_bias
-        l = tf.nn.relu(h)
-        d = self.dropout(l)
-        o = tf.matmul(d, self.hidden_to_logits_weight) + self.hidden_to_logits_bias
-        return tf.nn.softmax(o)
+
+        x = self.features(inputs)
+        x = self.dense(x)
+        if training:
+            x = self.dropout(x, training)
+        return self.logits(x)
+
         ### END YOUR CODE
+
+    # Interface to plot_model().
+    def build_graph(self):
+        dim = (self.n_features, self.n_features, self.n_features)
+        x = layers.Input(shape=dim)
+        return keras.Model(inputs=[x], outputs=self.call(x))
 

@@ -31,7 +31,7 @@ class Parser():
         self.tok2id[UNK] = self.UNK = 1
         self.tok2id[PAD] = self.PAD = 2
         # mapping from indices to tokens
-        self.id2tok = [t for i, t in self.tok2id.items()]
+        self.id2tok = [e[0] for e in sorted(self.tok2id.items(), key=lambda x: x[1])]
 
         # build the vocabulary of POS tags:
         logging.info('Build dictionary for POS tags.')
@@ -42,7 +42,7 @@ class Parser():
         self.pos2id[UNK] = self.POS_UNK = 1
         self.pos2id[PAD] = self.POS_PAD = 2
         # mapping from indices to POS
-        self.id2pos = [t for i, t in self.pos2id.items()]
+        self.id2pos = [e[0] for e in sorted(self.pos2id.items(), key=lambda x: x[1])]
 
         # build the vocabulary of deprels:
         deprels = set([tok.deprel for sent in sentences for tok in sent])
@@ -52,7 +52,7 @@ class Parser():
         self.dep2id[UNK] = self.DEPREL_UNK = 1
         self.dep2id[PAD] = self.DEPREL_PAD = 2
         # mapping from indices to deprel
-        self.id2dep = [t for i, t in self.dep2id.items()]
+        self.id2dep = [e[0] for e in sorted(self.dep2id.items(), key=lambda x: x[1])]
 
         # special root token
         self.root_token = Token(0, self.ROOT, self.POS_ROOT, 0, self.DEPREL_ROOT)
@@ -76,8 +76,8 @@ class Parser():
         with tqdm(total=len(sentences)) as prog:
             for sent in sentences:
                 # arcs = [(head, dependent, deprel)]
-                state = ParserState([self.root_token], sent)
-                while state.buffer:
+                state = ParserState([self.root_token], sent, []) # FIXME
+                while state.buffer or len(state.stack) > 1:
                     gold_t = state.get_oracle()
                     if gold_t is None:
                         break
@@ -88,27 +88,42 @@ class Parser():
 
         return train_x, train_y
 
-    def parse(self, sentences, model):
+    def parse(self, sentences, model, conllu=False):
         """
         @param sentences: a list of (list Token).
         @param model: a trained parser model.
+        @param conllu: if True prints the parsed sentences in CoNLL-U format.
         """
         vsentences = self.vectorize(sentences)
+
         UAS = LAS = all_tokens = 0.0
-        for sent in vsentences:
-            print('.', end='') # DEBUG
-            state = ParserState([self.root_token], sent, []) # FIXME
-            while state.buffer:
+        for sent, vsent in zip(sentences, vsentences):
+            if not conllu: print('.', end='') # show progress
+            state = ParserState([self.root_token], vsent, []) # FIXME
+            while state.buffer or len(state.stack) > 1:
                 feats = state.extract_features(self)
                 trans = model.predict([feats])[0].argmax()
-                state.step(trans)
+                if not state.step(trans):
+                    break # if transition is not feasible
+            if conllu:
+                for j,t in enumerate(sent):
+                    head = deprel = 0
+                    for arc in state.arcs:
+                        if arc[1].id == t.id:
+                            head = arc[0].id
+                            deprel = arc[2]
+                            break
+                    print('\t'.join([str(j+1), t.form, '_', t.pos, '_', '_',
+                                     str(head), self.id2dep[deprel],
+                                     '_', '_']))
+                print()
             for arc in state.arcs:
                 pred_h = arc[0].id
-                gold_h = sent[arc[1].id - 1].head
+                gold_h = arc[1].head
                 UAS += pred_h == gold_h
                 pred_l = arc[2]
-                gold_l = sent[arc[1].id - 1].deprel
-                LAS += pred_l == gold_l and pred_h == gold_h
+                gold_l = arc[1].deprel
+                LAS += pred_h == gold_h and pred_l == gold_l
                 all_tokens += 1
         UAS /= all_tokens
         LAS /= all_tokens

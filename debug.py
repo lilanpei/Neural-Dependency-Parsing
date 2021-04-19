@@ -16,7 +16,7 @@ def test_parse():
         f"parse test resulted in dependencies {dependencies}, expected {expected}"
     assert [t.form for t in sentence] == ["parse", "this", "sentence"], \
         f"parse test failed: the input sentence should not be modified"
-    print(f"{transition} parse test passed!")
+    print("parse test passed!")
 
 test_parse()
 
@@ -50,7 +50,7 @@ ds_dev = Dataset.from_tensor_slices((dev_x, dev_y)).shuffle(1000).batch(32)
 # load GloVE
 from glove import Glove
 
-glove_path = '../data/glove.6B/glove.6B.50d.txt'
+glove_path = '../../data/glove.6B/glove.6B.50d.txt'
 
 glove = Glove(glove_path)
 
@@ -103,5 +103,5 @@ history = model.fit(ds_train, epochs=EPOCHS,
 
 # Parse test
 
-UAS, LAS = parser.parse(test_sents, model)
+UAS, LAS = parser.parse(test_sents[:3], model, conllu=True)
 print('UAS', UAS, 'LAS', LAS)

@@ -25,7 +25,11 @@ class ParserState():
         ### Note: The root token should be represented with the string "ROOT"
         ### Note: If you need to use the sentence object to initialize anything, make sure to not directly 
         ###       reference the sentence object.  That is, remember to NOT modify the sentence object. 
-        self.stack, self.buffer, self.arcs = stack.copy(), buffer.copy(), arcs.copy()
+
+        self.stack = list(stack) # copy to avoid clobbering
+        self.buffer = list(buffer)
+        self.arcs = arcs
+
         ### END YOUR CODE
 
 
@@ -37,25 +41,44 @@ class ParserState():
             0: Shift
             2 * deprel: LEFT-ARC with label deprel
             2 * deprel + 1: RIGHT-ARC with label deprel
+        @return: True if the transition was feasible.
         """
-        ### YOUR CODE HERE (~10-12 Lines)
+        ### YOUR CODE HERE (~7-12 Lines)
         ### TODO:
         ###     Implement a single parsing step, i.e. the logic for the following transitions:
         ###         1. Shift
         ###         2. Left Arc
         ###         3. Right Arc
-        self.arcs.append((self.stack[-(transition%2)-1],self.stack.pop(transition%2-2),transition//2)) if transition else self.stack.append(self.buffer.pop(0))
-        ### END YOUR CODE
 
+        if transition == 0:  # Shift
+            if not self.buffer:
+                return False
+            self.stack.append(self.buffer[0])
+            self.buffer.pop(0)
+        elif transition % 2: # RIGHT-ARC
+            if len(self.stack) < 2:
+                return False
+            deprel = (transition -1) // 2
+            self.arcs.append((self.stack[-2], self.stack[-1], deprel))
+            self.stack.pop()
+        else:                # LEFT-ARC
+            if len(self.stack) < 3: # no LEFT-ARC to ROOT
+                return False
+            deprel = transition // 2
+            self.arcs.append((self.stack[-1], self.stack[-2], deprel))
+            self.stack.pop(-2)
+        return True
+
+        ### END YOUR CODE
 
     def parse(self, transitions):
         """Applies the provided transitions to this ParserState
 
         @param transitions (list of str): The list of transitions in the order they should be applied
 
-        @return arcs (list of triples): The list of arcs produced when parsing the sentence.
-                                        Represented as a list of tuples where each tuple is
-                                        of the form (head, dependent, deprel).
+        @return arcs (list of string tuples): The list of arcs produced when
+                                                        parsing the sentence. Represented as a list of
+                                                        tuples where each tuple is of the form (head, dependent).
         """
         for transition in transitions:
             self.step(self.tr2id[transition])
