@@ -26,9 +26,9 @@ class ParserState():
         ### Note: If you need to use the sentence object to initialize anything, make sure to not directly 
         ###       reference the sentence object.  That is, remember to NOT modify the sentence object. 
 
-        self.stack = list(stack) # copy to avoid clobbering
+        self.stack = list(stack) # shallow copy to avoid clobbering
         self.buffer = list(buffer)
-        self.arcs = arcs
+        self.arcs = list(arcs)
 
         ### END YOUR CODE
 
