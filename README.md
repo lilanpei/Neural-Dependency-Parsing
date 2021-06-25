@@ -1,4 +1,10 @@
 # Neural-Dependency-Parsing
+# Neural Dependency Parsing
+
+Modified from Stanford CS224N, by:
+- Sahil Chopra <schopra8@stanford.edu>
+- Haoshen Hong <haoshen@stanford.edu>
+
 In this homework, you’ll be implementing a neural-network based dependency parser with the goal of maximizing performance on the UAS (Unlabeled Attachment Score) metric.
 
 A dependency parser analyzes the grammatical structure of a sentence, establishing relationships between head words, and dependent words which modify those heads.
@@ -44,22 +50,6 @@ These features consist of a triple:
 - a list of POS tags for the same tokens
 - a list of DEPRELs for the same tokens.
 
-Each element is represented by an integer ids, and therefore it consists of:
-
-$$[ [w_1,w_2,...,w_m], [p_1, p_2,...,p_m], [d_1, d_2,..., d_m] ]$$
-
-where $m$ is the number of features and each $0 ≤ w_i < |V|$ is the index of a token in the vocabulary ($|V|$ is the vocabulary size) and similarly for $p_i$ and $d_i$.
-Then our network looks up an embedding for each word and tags and concatenates them into a single input vector:
-$$x = [E_{w_1},...,E_{w_m},Ep_{p_1},...,Ep_{p_m},Ed_{d_1},...,Ed_{d_m}] ∈ \mathbb{R}^{(d+d_p+d_d)m}$$
-where $E ∈ \mathbb{R}^{|V|×d}$ is an embedding matrix with each row $E_w$ as the vector for a particular word $w$, and similarly $Ep$ and $Ed$ for tags, with dimesions respectively $d_p$ and $d_d$.<br/>
-We then compute our prediction as:
-$$h = ReLU(xW + b_1)$$
-$$l = hU + b_2$$
-$$\hat{y} = softmax(l)$$
-where $h$ is referred to as the hidden layer, $l$ is referred to as the logits, $\hat{y}$ is referred to as the predictions, and $ReLU(z) = max(z, 0)$. We will train the model to minimize cross-entropy loss:
-$$J(θ) = CE(y,\hat{y}) = \sum_{i=1}^a{−y_i log \hat{y}_i}$$
-where $a$ is the number of possible parser actions.
-To compute the loss for the training set, we average this $J(θ)$ across all training examples.
 We will use UAS score as our evaluation metric. UAS refers to Unlabeled Attachment Score, which is computed as the ratio between number of correctly predicted dependencies and the number of total dependencies irrespective of the relations.
 
 In `model.py` you will find skeleton code to implement this simple neural network using Keras. Complete the `__init__` methods to implement the model.
