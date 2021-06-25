@@ -43,6 +43,7 @@ These features consist of a triple:
 - a list of tokens (e.g., the last word in the stack, first word in the buffer, dependent of the second-to-last word in the stack if there is one, etc.).
 - a list of POS tags for the same tokens
 - a list of DEPRELs for the same tokens.
+
 Each element is represented by an integer ids, and therefore it consists of:
 
 $$[ [w_1,w_2,...,w_m], [p_1, p_2,...,p_m], [d_1, d_2,..., d_m] ]$$
