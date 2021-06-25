@@ -1,5 +1,4 @@
 # Neural-Dependency-Parsing
-# Neural Dependency Parsing
 
 Modified from Stanford CS224N, by:
 - Sahil Chopra <schopra8@stanford.edu>
